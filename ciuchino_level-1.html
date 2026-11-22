@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#101c2a">
+<title>Ciuchino Level</title>
+<style>
+:root{--bg:#101c2a;--panel:#1b2b3d;--panel2:#24384d;--text:#f4f7fb;--muted:#a9bacb;--green:#35d07f;--yellow:#ffc857;--red:#ff7272;--blue:#65b9ff}
+*{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{overflow:auto} button,input,select{font:inherit} button{border:0;border-radius:12px;padding:12px 16px;font-weight:700;background:#31516e;color:white;cursor:pointer} button.primary{background:var(--green);color:#082216} button.secondary{background:#334b63} button.danger{background:#783b45} button:disabled{opacity:.45}
+.app{min-height:100%;padding:clamp(12px,2vw,26px);display:flex;flex-direction:column;gap:14px;max-width:1500px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:900;letter-spacing:.08em;font-size:clamp(20px,3vw,30px)} .brand span{color:var(--green)}
+.status{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}.dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);display:inline-block}.dot.ok{background:var(--green)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(270px,.8fr);gap:14px;flex:1}
+.panel{background:var(--panel);border:1px solid #30465c;border-radius:20px;padding:clamp(14px,2vw,22px);min-width:0}
+h1{font-size:clamp(20px,2.4vw,30px);margin:0 0 4px} h2{font-size:17px;margin:0 0 12px} p{color:var(--muted);margin:6px 0;line-height:1.4}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.metric{background:var(--panel2);padding:14px;border-radius:15px}.metric small{color:var(--muted);display:block;font-size:12px}.metric strong{font-size:clamp(27px,4vw,43px);font-variant-numeric:tabular-nums}
+.vanwrap{background:#142233;border-radius:16px;padding:12px;margin-top:12px}
+.vanlabel{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.12em;font-weight:800}
+.van{max-width:520px;margin:4px auto;width:100%;display:block}
+.wheel{fill:#0b1119;stroke:#8da3b8;stroke-width:3}.ramp{fill:var(--green);opacity:0}.wheel.lift .ramp{opacity:1}.wheel.lift .wheel{stroke:var(--green);stroke-width:5}
+.legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:5px}
+.instruction{text-align:center;font-size:clamp(17px,2.5vw,25px);font-weight:900;color:var(--green);margin-top:12px}
+.side{display:flex;flex-direction:column;gap:14px}
+.readout{background:var(--panel2);padding:13px;border-radius:14px}.readout strong{font-size:24px;font-variant-numeric:tabular-nums}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+select,input{width:100%;background:#102033;border:1px solid #45617b;border-radius:10px;color:white;padding:11px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px}
+.note{font-size:12px;color:var(--muted)}
+.banner{padding:12px 14px;border-radius:13px;background:#3b3320;color:#ffe2a0;font-size:13px;line-height:1.4}
+.good{background:#173c2c;color:#b8f6d2}.bad{background:#47272d;color:#ffc2c2}
+.hidden{display:none!important}
+footer{font-size:11px;color:#8297aa;text-align:center;padding:5px}
+@media(max-width:760px){.main{grid-template-columns:1fr}.app{padding:12px}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:last-child{grid-column:1/-1}}
+@media(orientation:portrait){header{align-items:flex-start}.main{grid-template-columns:1fr}.van{max-width:420px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div><div class="brand">CIUCHINO <span>LEVEL</span></div><div class="status"><i class="dot" id="sensorDot"></i><span id="sensorStatus">Sensori non avviati</span></div></div>
+ <div class="toolbar">
+  <button class="secondary" id="startBtn">Attiva sensori</button>
+  <button class="secondary" id="fullscreenBtn">Schermo intero</button>
+ </div>
+</header>
+<div class="banner" id="secureNotice">Test sensori: premi «Attiva sensori». Se Chrome non consegna dati perché il file è aperto da Download (file://), occorre aprire la stessa app da un indirizzo HTTPS. Tieni il telefono fermo durante le letture.</div>
+<div class="main">
+ <section class="panel">
+  <h1>Livellamento camper</h1>
+  <p id="profileLine">Profilo: nessun piano salvato</p>
+  <div class="metrics">
+   <div class="metric"><small>INCLINAZIONE AVANTI / INDIETRO</small><strong id="pitchVal">—°</strong></div>
+   <div class="metric"><small>INCLINAZIONE SINISTRA / DESTRA</small><strong id="rollVal">—°</strong></div>
+  </div>
+  <div class="vanwrap">
+   <div class="vanlabel">ANTERIORE · CABINA</div>
+   <svg class="van" viewBox="0 0 520 300" role="img" aria-label="Schema del camper visto dall'alto">
+    <rect x="100" y="24" width="320" height="246" rx="46" fill="#7890a8" opacity=".20" stroke="#b7c8d8" stroke-width="3"/>
+    <path d="M142 72 Q142 45 176 45 H344 Q378 45 378 72 V104 H142Z" fill="#65b9ff" opacity=".5" stroke="#b7c8d8" stroke-width="2"/>
+    <rect x="142" y="115" width="236" height="125" rx="12" fill="#8da3b8" opacity=".2"/>
+    <path d="M165 180 H355" stroke="#b7c8d8" opacity=".45" stroke-width="2" stroke-dasharray="7 7"/>
+    <text x="260" y="91" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">CABINA</text>
+    <text x="260" y="160" text-anchor="middle" fill="#d8e5f0" font-size="15">CIUCHINO</text>
+    <text x="260" y="205" text-anchor="middle" fill="#9fb2c5" font-size="12">VISTA DALL'ALTO</text>
+    <g id="wFL" class="wheel"><rect class="ramp" x="63" y="70" width="43" height="64" rx="8"/><rect class="wheel" x="70" y="78" width="29" height="48" rx="9"/></g>
+    <g id="wFR" class="wheel"><rect class="ramp" x="414" y="70" width="43" height="64" rx="8"/><rect class="wheel" x="421" y="78" width="29" height="48" rx="9"/></g>
+    <g id="wRL" class="wheel"><rect class="ramp" x="63" y="190" width="43" height="64" rx="8"/><rect class="wheel" x="70" y="198" width="29" height="48" rx="9"/></g>
+    <g id="wRR" class="wheel"><rect class="ramp" x="414" y="190" width="43" height="64" rx="8"/><rect class="wheel" x="421" y="198" width="29" height="48" rx="9"/></g>
+    <text x="86" y="60" text-anchor="middle" fill="#cbd5e1" font-size="13">SX</text><text x="435" y="60" text-anchor="middle" fill="#cbd5e1" font-size="13">DX</text>
+    <text x="86" y="270" text-anchor="middle" fill="#cbd5e1" font-size="13">SX</text><text x="435" y="270" text-anchor="middle" fill="#cbd5e1" font-size="13">DX</text>
+   </svg>
+   <div class="vanlabel">POSTERIORE</div>
+   <div class="legend"><span>🟩 Ruota da sollevare</span><span>⬛ Ruota senza cuneo</span></div>
+   <div class="instruction" id="instruction">Salva prima il piano di riferimento</div>
+  </div>
+ </section>
+ <aside class="side">
+  <section class="panel">
+   <h2>Correzione necessaria</h2>
+   <div class="readout"><small class="note">Differenza longitudinale</small><br><strong id="deltaPitch">—°</strong></div>
+   <div class="readout" style="margin-top:9px"><small class="note">Differenza laterale</small><br><strong id="deltaRoll">—°</strong></div>
+   <p class="note" id="sensorHint">Attiva i sensori e appoggia il telefono sempre nello stesso punto e nello stesso verso.</p>
+  </section>
+  <section class="panel">
+   <h2>Memoria del piano</h2>
+   <label for="profileSelect">Richiama un profilo</label>
+   <select id="profileSelect"><option value="">Nessun profilo</option></select>
+   <label for="profileName">Nome del nuovo profilo</label>
+   <input id="profileName" placeholder="Es. Camper in piano">
+   <div class="actions">
+    <button class="primary" id="saveBtn" disabled>Salva piano attuale</button>
+    <button class="secondary" id="useBtn" disabled>Usa profilo</button>
+   </div>
+   <div class="actions"><button class="danger" id="deleteBtn" disabled>Elimina profilo</button></div>
+  </section>
+  <section class="panel">
+   <h2>Impostazioni e calibrazione</h2>
+   <p class="note">Il bordo superiore del telefono è rivolto verso il lato destro del camper. Mantieni sempre questa posizione.</p>
+   <label for="tolerance">Tolleranza per considerarlo in piano</label>
+   <select id="tolerance"><option value="0.5">Molto precisa · 0,5°</option><option value="1" selected>Normale · 1°</option><option value="1.5">Pratica · 1,5°</option><option value="2">Tollerante · 2°</option></select>
+   <div class="actions"><button class="secondary" id="zeroBtn" disabled>Ricalibra sensori</button></div>
+  </section>
+ </aside>
+</div>
+<footer>Prima versione sperimentale · Usa il piano salvato come riferimento · Verifica sempre visivamente la stabilità del veicolo</footer>
+</div>
+<script>
+(()=>{
+ const $=id=>document.getElementById(id);
+ let raw={x:null,y:null,z:null}, current=null, reference=null, profiles={}, selected="", running=false, stableSamples=[], lastUpdate=0, motionSeen=false, orientationSeen=false;
+ const keys=['x','y','z'];
+ const setStatus=(s,ok=false)=>{$('sensorStatus').textContent=s;$('sensorDot').classList.toggle('ok',ok)};
+ const rad2deg=r=>r*180/Math.PI;
+ function getAngles(a){
+   // Accelerazione comprensiva della gravità, telefono con display verso l'alto.
+   const x=a.x,y=a.y,z=a.z;
+   if([x,y,z].some(v=>v===null||!Number.isFinite(v)))return null;
+   const norm=Math.sqrt(x*x+y*y+z*z); if(norm<5||norm>15)return null;
+   // Assi del dispositivo: X lungo il bordo corto, Y verso il bordo superiore.
+   // Con il bordo superiore verso destra del camper, Y rappresenta l'asse laterale.
+   // X rappresenta l'asse longitudinale; il segno viene verificato nella prova iniziale.
+   const pitch=rad2deg(Math.atan2(x,Math.abs(z)));
+   const roll=rad2deg(Math.atan2(y,Math.abs(z)));
+   return {pitch,roll};
+ }
+ function onMotion(e){
+   motionSeen=true;
+   const a=e.accelerationIncludingGravity;
+   if(!a)return;
+   raw={x:a.x,y:a.y,z:a.z};
+   const ang=getAngles(raw); if(!ang)return;
+   const now=Date.now();
+   if(now-lastUpdate<90)return; lastUpdate=now;
+   current=ang;
+   stableSamples.push(ang); if(stableSamples.length>12)stableSamples.shift();
+   render();
+ }
+ function setDiagnostic(message, ok=false){
+   setStatus(message,ok);
+   $('sensorHint').textContent=message;
+ }
+ function onOrientation(e){
+   orientationSeen=true;
+   // beta/gamma provide a second orientation-based reading where available.
+   if(Number.isFinite(e.beta) && Number.isFinite(e.gamma)){
+     $('sensorHint').textContent='Orientamento ricevuto dal telefono. beta '+e.beta.toFixed(1)+'°, gamma '+e.gamma.toFixed(1)+'°. In attesa dell’accelerometro per il livellamento.';
+   }
+ }
+ async function start(){
+   setDiagnostic('Pulsante ricevuto: controllo permessi e sensori…');
+   $('startBtn').disabled=true;
+   try{
+    const hasMotion=('DeviceMotionEvent' in window);
+    const hasOrientation=('DeviceOrientationEvent' in window);
+    if(!hasMotion && !hasOrientation){
+      setDiagnostic('Questo Chrome non espone le API dei sensori.');
+      $('startBtn').disabled=false; return;
+    }
+    // Permission API exists on some browsers (notably iOS); Android Chrome normally skips it.
+    if(hasMotion && typeof DeviceMotionEvent.requestPermission==='function'){
+      setDiagnostic('Richiesta permesso movimento…');
+      const p=await DeviceMotionEvent.requestPermission();
+      if(p!=='granted'){setDiagnostic('Permesso movimento negato. Controlla i permessi del sito.');$('startBtn').disabled=false;return;}
+    }
+    if(hasOrientation && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const p=await DeviceOrientationEvent.requestPermission();
+      if(p!=='granted'){setDiagnostic('Permesso orientamento negato.');$('startBtn').disabled=false;return;}
+    }
+    window.addEventListener('devicemotion',onMotion,true);
+    window.addEventListener('deviceorientation',onOrientation,true);
+    running=true;
+    setDiagnostic('Listener attivi. Muovi leggermente il telefono: attendo i dati dei sensori…',true);
+    $('startBtn').textContent='Sensori in ascolto';
+    // Wake lock is best-effort.
+    if('wakeLock' in navigator){try{await navigator.wakeLock.request('screen')}catch(e){}}
+    setTimeout(()=>{
+      if(!motionSeen && !orientationSeen){
+        setDiagnostic('Chrome non sta consegnando dati dei sensori. Probabile blocco del file locale: serve aprire la pagina da HTTPS, non da file://.');
+        $('startBtn').disabled=false;
+        $('startBtn').textContent='Riprova sensori';
+      } else if(!motionSeen){
+        setDiagnostic('Orientamento disponibile, accelerometro non disponibile. Prova a riaprire la pagina da HTTPS.');
+        $('startBtn').disabled=false;
+        $('startBtn').textContent='Riprova sensori';
+      }
+    },3500);
+   }catch(err){
+    setDiagnostic('Errore avvio sensori: '+(err && err.message ? err.message : String(err)));
+    $('startBtn').disabled=false;
+    $('startBtn').textContent='Riprova sensori';
+   }
+ }
+ function avgSamples(){
+   if(stableSamples.length<6)return null;
+   const p=stableSamples.reduce((s,v)=>s+v.pitch,0)/stableSamples.length;
+   const r=stableSamples.reduce((s,v)=>s+v.roll,0)/stableSamples.length;
+   const spreadP=Math.max(...stableSamples.map(v=>v.pitch))-Math.min(...stableSamples.map(v=>v.pitch));
+   const spreadR=Math.max(...stableSamples.map(v=>v.roll))-Math.min(...stableSamples.map(v=>v.roll));
+   return {pitch:p,roll:r,stable:spreadP<0.35&&spreadR<0.35};
+ }
+ function wheelState(dp,dr,tol){
+   // Il mapping dei segni viene lasciato esplicito e va verificato sul camper durante il primo collaudo.
+   // Positivo pitch = muso più alto; positivo roll = lato destro più alto.
+   // Per raddrizzare: alzare il lato/bordo più basso.
+   const frontLow=dp>tol, rearLow=dp< -tol;
+   const leftLow=dr>tol, rightLow=dr< -tol;
+   const flags={FL:false,FR:false,RL:false,RR:false};
+   if(frontLow){flags.FL=true;flags.FR=true}
+   if(rearLow){flags.RL=true;flags.RR=true}
+   if(leftLow){flags.FL=true;flags.RL=true}
+   if(rightLow){flags.FR=true;flags.RR=true}
+   return {flags,frontLow,rearLow,leftLow,rightLow};
+ }
+ function render(){
+   if(!current)return;
+   $('pitchVal').textContent=(current.pitch>=0?'+':'')+current.pitch.toFixed(1)+'°';
+   $('rollVal').textContent=(current.roll>=0?'+':'')+current.roll.toFixed(1)+'°';
+   $('saveBtn').disabled=false;$('zeroBtn').disabled=false;
+   if(!reference){
+    $('instruction').textContent='Salva il piano di riferimento';
+    $('deltaPitch').textContent='—°';$('deltaRoll').textContent='—°';
+    return;
+   }
+   const dp=current.pitch-reference.pitch, dr=current.roll-reference.roll;
+   $('deltaPitch').textContent=(dp>=0?'+':'')+dp.toFixed(1)+'°';
+   $('deltaRoll').textContent=(dr>=0?'+':'')+dr.toFixed(1)+'°';
+   const tol=Number($('tolerance').value);
+   const result=wheelState(dp,dr,tol);
+   ['FL','FR','RL','RR'].forEach(k=>$('w'+k).classList.toggle('lift',result.flags[k]));
+   const isLevel=Math.abs(dp)<=tol&&Math.abs(dr)<=tol;
+   if(isLevel){$('instruction').textContent='✓ CAMPER IN PIANO';$('instruction').style.color='var(--green)';}
+   else{
+    $('instruction').style.color='var(--yellow)';
+    const parts=[];
+    if(result.frontLow)parts.push('ANTERIORE');
+    if(result.rearLow)parts.push('POSTERIORE');
+    if(result.leftLow)parts.push('SINISTRO');
+    if(result.rightLow)parts.push('DESTRO');
+    $('instruction').textContent='SOLLEVARE: '+parts.join(' + ');
+   }
+   $('sensorHint').textContent='Confronto con il profilo memorizzato. Il verso degli assi va verificato al primo utilizzo.';
+ }
+ function loadProfiles(){
+  try{profiles=JSON.parse(localStorage.getItem('ciuchinoProfiles')||'{}')}catch(e){profiles={}}
+  const sel=$('profileSelect');sel.innerHTML='<option value="">Nessun profilo</option>';
+  Object.entries(profiles).forEach(([id,p])=>{const o=document.createElement('option');o.value=id;o.textContent=p.name;sel.appendChild(o)});
+  if(selected&&profiles[selected])sel.value=selected;
+  $('useBtn').disabled=!sel.value;$('deleteBtn').disabled=!sel.value;
+ }
+ function saveProfiles(){localStorage.setItem('ciuchinoProfiles',JSON.stringify(profiles));}
+ function saveProfile(){
+  const a=avgSamples();
+  if(!current){alert('Attiva prima i sensori.');return;}
+  if(a&&!a.stable){if(!confirm('Il telefono sembra muoversi. Vuoi salvare comunque la lettura media?'))return;}
+  const name=$('profileName').value.trim()||'Piano '+(Object.keys(profiles).length+1);
+  const id='p'+Date.now();
+  profiles[id]={name,reference:{pitch:a?a.pitch:current.pitch,roll:a?a.roll:current.roll},created:new Date().toISOString()};
+  saveProfiles();selected=id;reference=profiles[id].reference;loadProfiles();$('profileLine').textContent='Profilo: '+name;
+  render();
+ }
+ function useProfile(){
+  selected=$('profileSelect').value;if(!selected||!profiles[selected])return;
+  reference=profiles[selected].reference;$('profileLine').textContent='Profilo: '+profiles[selected].name;render();
+ }
+ $('startBtn').addEventListener('click',start);
+ $('fullscreenBtn').addEventListener('click',async()=>{try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen();if(screen.orientation&&screen.orientation.lock){try{await screen.orientation.lock('landscape')}catch(e){}}}else{await document.exitFullscreen();if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock()}}catch(e){alert('Schermo intero non disponibile in questo browser.')}});
+ $('saveBtn').addEventListener('click',saveProfile);
+ $('useBtn').addEventListener('click',useProfile);
+ $('profileSelect').addEventListener('change',()=>{$('useBtn').disabled=!$('profileSelect').value;$('deleteBtn').disabled=!$('profileSelect').value});
+ $('deleteBtn').addEventListener('click',()=>{const id=$('profileSelect').value;if(!id)return;if(confirm('Eliminare questo profilo?')){delete profiles[id];if(selected===id){selected='';reference=null;$('profileLine').textContent='Profilo: nessun piano salvato'}saveProfiles();loadProfiles();render()}});
+ $('zeroBtn').addEventListener('click',()=>{stableSamples=[];if(current){$('sensorHint').textContent='Sensori ricalibrati. Ora puoi salvare il piano quando il camper è perfettamente in piano.';}});
+ $('tolerance').addEventListener('change',render);
+ loadProfiles();
+ if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.protocol!=='file:'){
+  $('secureNotice').classList.remove('good');
+ }
+ if(location.protocol==='https:')$('secureNotice').classList.add('good');
+ // Mantieni lo schermo acceso quando il browser supporta Wake Lock.
+ let wakeLock=null;
+ document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&running&&'wakeLock'in navigator){try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}});
+})();
+</script>
+</body>
+</html>
